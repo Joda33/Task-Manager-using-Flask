@@ -1,24 +1,25 @@
-import os
-import sys
 import pytest
-
-# Garante que o Python encontre o arquivo run.py na raiz do projeto
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-from run import app  # Importa o app do seu arquivo run.py
-
+# Importa o objeto 'app' do seu projeto. 
+# Nota: Se o seu arquivo principal tiver outro nome, ajuste 'todo_project' para o nome correto.
+from todo_project import app 
 @pytest.fixture
 def client():
+    """Configura o cliente de teste do Flask"""
     app.config['TESTING'] = True
     with app.test_client() as client:
         yield client
 
-def test_status_rota_inicial(client):
-    """TESTE REAL: Valida se a aplicação responde na rota raiz (Status 200 ou 302)"""
+def test_homepage(client):
+    """Teste Funcional: Verifica se a página inicial carrega com sucesso (Status 200)"""
     response = client.get('/')
-    assert response.status_code in [200, 302]
+    assert response.status_code == 200
 
-def test_pagina_login_existe(client):
-    """TESTE REAL: Verifica se o endpoint de login está estruturado no Flask"""
+def test_login_page_loads(client):
+    """Verifica se a rota de login está acessível"""
     response = client.get('/login')
-    assert response.status_code in [200, 302]
+    assert response.status_code == 200
+
+def test_about_page_content(client):
+    """Verifica se uma string específica aparece na página 'Sobre'"""
+    response = client.get('/about')
+    assert b"Aditya Bagad" in response.data
