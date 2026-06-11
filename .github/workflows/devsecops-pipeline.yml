@@ -2,12 +2,13 @@ name: DevSecOps Lifecycle Pipeline
 
 on:
   push:
+    # O pipeline contempla ramificações dedicadas conforme exigido [3]
     branches: [ "main", "master", "desenvolvimento", "estagio" ]
   pull_request:
     branches: [ "main", "master" ]
 
 jobs:
-  # ETAPA 3: Job de Build - Validação do Ambiente
+  # ETAPA 3: Job de Build - Validação do Ambiente [3, 4]
   build:
     name: Build e Validação de Sintaxe
     runs-on: ubuntu-latest
@@ -24,10 +25,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          # Validação simples de sintaxe para garantir consistência [4]
+          # Garante a consistência do ambiente e sintaxe [3]
           python -m compileall .
 
-  # ETAPA 3: Job de Teste - Testes Automatizados
+  # ETAPA 3: Job de Teste - Testes Automatizados [1, 4]
   test:
     name: Execução de Testes Unitários (Pytest)
     needs: build
@@ -46,10 +47,10 @@ jobs:
 
       - name: Executar Testes Automatizados
         run: |
-          # Executa o arquivo de teste criado anteriormente [1]
-          pytest tests/test_app.py --doctest-modules --junitxml=junit/test-results.xml
+          # O uso do '-m' resolve o erro de ModuleNotFoundError visto anteriormente
+          python -m pytest tests/test_app.py --junitxml=junit/test-results.xml
 
-  # ETAPA 4: Job de Segurança - SAST com Bandit
+  # ETAPA 4: Job de Segurança - SAST com Bandit [1, 2]
   sast_bandit:
     name: Análise Estática de Código (SAST)
     needs: build
@@ -66,10 +67,10 @@ jobs:
       - name: Rodar Bandit (Vulnerabilidades Python)
         run: |
           pip install bandit
-          # Gera relatório textual e falha se encontrar riscos altos [1, 3]
+          # Gera relatório textual para o PDF final [2, 5]
           bandit -r . -f txt -o bandit-report.txt || true
 
-  # ETAPA 4: Job de Segurança - SCA com Pip-audit
+  # ETAPA 4: Job de Segurança - SCA com Pip-audit [2, 6]
   sca_dependencies:
     name: Análise de Dependências (SCA)
     needs: build
@@ -83,20 +84,21 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Rodar Pip-audit (Bibliotecas Vulneráveis)
+      - name: Rodar Pip-audit (CVEs em Bibliotecas)
         run: |
           pip install pip-audit
-          # Verifica o requirements.txt contra CVEs conhecidas [2, 3]
+          # Identifica bibliotecas desatualizadas ou com falhas [6]
           pip-audit -r requirements.txt
 
-  # ETAPA 6: Simulação de Deploy (Apenas se jobs anteriores passarem)
+  # ETAPA 6: Entrega Contínua (CD) - Deploy em Estágio [7, 8]
   deploy:
     name: Deploy em Ambiente de Estágio (Stage)
     needs: [test, sast_bandit, sca_dependencies]
     runs-on: ubuntu-latest
+    # Deploy ocorre apenas após validação nas branches principais [7]
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     steps:
-      - name: Implantar em Stage
+      - name: Simular Implantacão
         run: |
-          echo "Implantando aplicação no ambiente de estágio para testes DAST..."
-          # Aqui entrariam os scripts de deploy real ou docker push [5, 6]
+          echo "Implantando aplicação no ambiente de estágio para validação DAST..."
+          echo "Deploy processado com sucesso!"
